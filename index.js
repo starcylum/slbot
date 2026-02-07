@@ -120,7 +120,7 @@ client.on("messageCreate", async (message) => {
     message.guild.members.fetch().then(members => {
       members.forEach(member => {
         if (member.user.bot) return;
-        member.send(`🌌 **Star’s Legacy Announcement**\n\n${text}`)
+        member.send(`🚨 **IMPERIAL ALERT** 🚨\n\n${text}`)
           .catch(() => {});
       });
     });
@@ -129,3 +129,4 @@ client.on("messageCreate", async (message) => {
 
 
 client.login(process.env.TOKEN);
+
