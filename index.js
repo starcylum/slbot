@@ -19,6 +19,7 @@ const client = new Client({
 });
 
 const PREFIX = "!";
+const INSPECTOR_ROLE_ID = "1468592972281938149";
 
 client.once("clientReady", async (c) => {
   console.log(`🌌 Logged in as ${c.user.tag}`);
@@ -183,11 +184,24 @@ client.on("interactionCreate", async (interaction) => {
 
     const row = new ActionRowBuilder().addComponents(approve);
 
-    channel.send({
-      content: `${interaction.user} send your Roblox profile link and proof you joined the group.`,
-      components: [row]
-    });
+channel.send({
+  content: `<@&1468592972281938149>
 
+📡 **NEW VERIFICATION REQUEST**
+User: ${interaction.user}
+
+🌌 **Republic of Star’s Legacy – Entry Examination**
+
+Please answer the following:
+
+1️⃣ What is your Roblox username?
+2️⃣ List your past clans (if none, say None).
+3️⃣ Send a screenshot of your Discord server list (left sidebar visible).
+4️⃣ Do you swear loyalty to the Republic of Star’s Legacy? (Yes / No)
+
+A Star Inspector has been notified and will review your answers.`,
+  components: [row]
+});
     interaction.reply({ content: `Your verification ticket: ${channel}`, ephemeral: true });
   }
 
@@ -212,5 +226,6 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.login(process.env.TOKEN);
+
 
 
