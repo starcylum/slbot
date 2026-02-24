@@ -1,7 +1,12 @@
 const {
   Client,
   GatewayIntentBits,
-  PermissionsBitField
+  PermissionsBitField,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
+  PermissionFlagsBits
 } = require("discord.js");
 
 const client = new Client({
@@ -15,8 +20,8 @@ const client = new Client({
 
 const PREFIX = "!";
 
-client.once("ready", () => {
-  console.log(`🌌 Logged in as ${client.user.tag}`);
+client.once("clientReady", async (c) => {
+  console.log(`🌌 Logged in as ${c.user.tag}`);
 });
 
 client.on("messageCreate", async (message) => {
@@ -127,6 +132,85 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+/* ================= VERIFICATION TICKET SYSTEM ================= */
+
+client.on("messageCreate", async (message) => {
+  if (message.content === "!setupverify") {
+
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator))
+      return message.reply("Admin only.");
+
+    const button = new ButtonBuilder()
+      .setCustomId("verify_start")
+      .setLabel("Begin Verification")
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(button);
+
+    message.channel.send({
+      content: "🌌 **Republic of Star’s Legacy Verification**\nPress the button below to verify and join the Republic.",
+      components: [row]
+    });
+  }
+});
+
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isButton()) return;
+
+  /* CREATE TICKET */
+  if (interaction.customId === "verify_start") {
+
+    const guild = interaction.guild;
+
+    const staffRole = guild.roles.cache.find(r => r.name === "Star Inspector");
+    if (!staffRole)
+      return interaction.reply({ content: "Star Inspector role not found.", ephemeral: true });
+
+    const channel = await guild.channels.create({
+      name: `verify-${interaction.user.id}`,   // IMPORTANT
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+        { id: staffRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+      ]
+    });
+
+    const approve = new ButtonBuilder()
+      .setCustomId("verify_approve")
+      .setLabel("Approve")
+      .setStyle(ButtonStyle.Success);
+
+    const row = new ActionRowBuilder().addComponents(approve);
+
+    channel.send({
+      content: `${interaction.user} send your Roblox profile link and proof you joined the group.`,
+      components: [row]
+    });
+
+    interaction.reply({ content: `Your verification ticket: ${channel}`, ephemeral: true });
+  }
+
+  /* APPROVE */
+  if (interaction.customId === "verify_approve") {
+
+    if (!interaction.member.roles.cache.some(r => r.name === "Star Inspector"))
+      return interaction.reply({ content: "Only Star Inspector can approve.", ephemeral: true });
+
+    const memberId = interaction.channel.name.split("-")[1];
+    const member = await interaction.guild.members.fetch(memberId);
+    const role = interaction.guild.roles.cache.find(r => r.name === "Star Enlisted");
+
+    if (!role)
+      return interaction.reply({ content: "Verified role missing.", ephemeral: true });
+
+    await member.roles.add(role);
+
+    await interaction.channel.send("✅ User verified. Welcome to the Republic.");
+    setTimeout(() => interaction.channel.delete(), 5000);
+  }
+});
 
 client.login(process.env.TOKEN);
+
 
