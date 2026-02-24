@@ -22,10 +22,11 @@ const PREFIX = "!";
 const INSPECTOR_ROLE_ID = "1468592972281938149";
 const WELCOME_CHANNEL_ID = "1468585718472245417";
 
-client.once("clientReady", async (c) => {
-  console.log(`🌌 Logged in as ${c.user.tag}`);
+client.once("ready", () => {
+  console.log(`🌌 Logged in as ${client.user.tag}`);
 });
 
+// ================= MESSAGE COMMANDS =================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.guild) return;
@@ -65,7 +66,6 @@ client.on("messageCreate", async (message) => {
 
     const reason = args.slice(1).join(" ") || "No reason given";
     await member.kick(reason);
-
     message.channel.send(`👢 ${member.user.tag} was kicked.\nReason: ${reason}`);
   }
 
@@ -80,7 +80,6 @@ client.on("messageCreate", async (message) => {
 
     const reason = args.slice(1).join(" ") || "No reason given";
     await member.ban({ reason });
-
     message.channel.send(`🔨 ${member.user.tag} was banned.\nReason: ${reason}`);
   }
 
@@ -113,7 +112,7 @@ client.on("messageCreate", async (message) => {
       .catch(() => message.reply(":x: User has DMs closed."));
   }
 
-  // :envelope_with_arrow: DM ALL MEMBERS (USE CAREFULLY)
+  // :envelope_with_arrow: DM ALL MEMBERS
   if (command === "dmall") {
     if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
       return message.reply(":x: Admin only.");
@@ -127,22 +126,38 @@ client.on("messageCreate", async (message) => {
     message.guild.members.fetch().then(members => {
       members.forEach(member => {
         if (member.user.bot) return;
-        member.send(`🚨 **IMPERIAL ALERT** 🚨\n\n${text}`)
+        member.send(`🚨 **REPUBLIC ALERT** 🚨\n\n${text}`)
           .catch(() => {});
       });
     });
   }
+
+  // :shield: SETUP VERIFY
+  if (command === "setupverify") {
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator))
+      return message.reply("Admin only.");
+
+    const button = new ButtonBuilder()
+      .setCustomId("verify_start")
+      .setLabel("Begin Verification")
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(button);
+
+    message.channel.send({
+      content: "🌌 **Republic of Star’s Legacy Verification**\nPress the button below to verify and join the Republic.",
+      components: [row]
+    });
+  }
 });
 
-/* ================= VERIFICATION TICKET SYSTEM ================= */
-
+// ================= VERIFICATION TICKET SYSTEM =================
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
 
   /* CREATE TICKET */
   if (interaction.customId === "verify_start") {
     const guild = interaction.guild;
-
     const staffRole = guild.roles.cache.find(r => r.name === "Star Inspector");
     if (!staffRole)
       return interaction.reply({ content: "Star Inspector role not found.", ephemeral: true });
@@ -171,7 +186,7 @@ client.on("interactionCreate", async (interaction) => {
       );
 
     channel.send({
-      content: `<@&1468592972281938149>
+      content: `<@&${INSPECTOR_ROLE_ID}>
 
 📡 **NEW VERIFICATION REQUEST**
 User: ${interaction.user}
@@ -206,8 +221,8 @@ A Star Inspector has been notified and will review your answers.`,
 
     await member.roles.add(role);
 
-    // 🔔 Send welcome in public channel
-    const welcomeChannel = interaction.guild.channels.cache.get("1468585718472245417");
+    // Send welcome message
+    const welcomeChannel = interaction.guild.channels.cache.get(WELCOME_CHANNEL_ID);
     if (welcomeChannel) {
       welcomeChannel.send(
         `🌟 **Trooper Accepted**
@@ -229,7 +244,6 @@ Serve with honor.`
       return interaction.reply({ content: "Only Star Inspector can deny.", ephemeral: true });
 
     const memberId = interaction.channel.name.split("-")[1];
-
     let member;
     try {
       member = await interaction.guild.members.fetch(memberId);
@@ -248,7 +262,7 @@ You may re-apply later.`
     await interaction.channel.send("❌ Application denied. Ticket closing.");
     setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
   }
-}); // <-- closes interactionCreate event
+});
 
-// Log in the bot
+// ================= LOGIN =================
 client.login(process.env.TOKEN);
