@@ -191,7 +191,7 @@ client.on("interactionCreate", async (interaction) => {
       .setStyle(ButtonStyle.Danger)
   );
 
-    const row = new ActionRowBuilder().addComponents(approve);
+
 
 channel.send({
   content: `<@&1468592972281938149>
@@ -276,6 +276,7 @@ You may re-apply later.`
 }
 
 client.login(process.env.TOKEN);
+
 
 
 
