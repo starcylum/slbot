@@ -168,8 +168,8 @@ client.on("interactionCreate", async (interaction) => {
     if (!staffRole)
       return interaction.reply({ content: "Star Inspector role not found.", ephemeral: true });
 
-    const channel = await guild.channels.create({
-      name: `verify-${interaction.user.id}`,   // IMPORTANT
+   const channel = await guild.channels.create({
+  name: `ticket-${interaction.user.id}`,   // IMPORTANT
       type: ChannelType.GuildText,
       permissionOverwrites: [
         { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -276,6 +276,7 @@ You may re-apply later.`
 }
 
 client.login(process.env.TOKEN);
+
 
 
 
