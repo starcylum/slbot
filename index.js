@@ -136,40 +136,19 @@ client.on("messageCreate", async (message) => {
 
 /* ================= VERIFICATION TICKET SYSTEM ================= */
 
-client.on("messageCreate", async (message) => {
-  if (message.content === "!setupverify") {
-
-    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator))
-      return message.reply("Admin only.");
-
-    const button = new ButtonBuilder()
-      .setCustomId("verify_start")
-      .setLabel("Begin Verification")
-      .setStyle(ButtonStyle.Primary);
-
-    const row = new ActionRowBuilder().addComponents(button);
-
-    message.channel.send({
-      content: "🌌 **Republic of Star’s Legacy Verification**\nPress the button below to verify and join the Republic.",
-      components: [row]
-    });
-  }
-});
-
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
 
   /* CREATE TICKET */
   if (interaction.customId === "verify_start") {
-
     const guild = interaction.guild;
 
     const staffRole = guild.roles.cache.find(r => r.name === "Star Inspector");
     if (!staffRole)
       return interaction.reply({ content: "Star Inspector role not found.", ephemeral: true });
 
-   const channel = await guild.channels.create({
-  name: `ticket-${interaction.user.id}`,   // IMPORTANT
+    const channel = await guild.channels.create({
+      name: `ticket-${interaction.user.id}`,
       type: ChannelType.GuildText,
       permissionOverwrites: [
         { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -178,23 +157,21 @@ client.on("interactionCreate", async (interaction) => {
       ]
     });
 
-   const row = new ActionRowBuilder()
-  .addComponents(
-    new ButtonBuilder()
-      .setCustomId("verify_approve")
-      .setLabel("Approve")
-      .setStyle(ButtonStyle.Success),
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId("verify_approve")
+          .setLabel("Approve")
+          .setStyle(ButtonStyle.Success),
 
-    new ButtonBuilder()
-      .setCustomId("verify_deny")
-      .setLabel("Deny")
-      .setStyle(ButtonStyle.Danger)
-  );
+        new ButtonBuilder()
+          .setCustomId("verify_deny")
+          .setLabel("Deny")
+          .setStyle(ButtonStyle.Danger)
+      );
 
-
-
-channel.send({
-  content: `<@&1468592972281938149>
+    channel.send({
+      content: `<@&1468592972281938149>
 
 📡 **NEW VERIFICATION REQUEST**
 User: ${interaction.user}
@@ -209,76 +186,69 @@ Please answer the following:
 4️⃣ Do you swear loyalty to the Republic of Star’s Legacy? (Yes / No)
 
 A Star Inspector has been notified and will review your answers.`,
-  components: [row]
-});
+      components: [row]
+    });
+
     interaction.reply({ content: `Your verification ticket: ${channel}`, ephemeral: true });
   }
 
-/* APPROVE */
-if (interaction.customId === "verify_approve") {
+  /* APPROVE */
+  if (interaction.customId === "verify_approve") {
+    if (!interaction.member.roles.cache.some(r => r.name === "Star Inspector"))
+      return interaction.reply({ content: "Only Star Inspector can approve.", ephemeral: true });
 
-  if (!interaction.member.roles.cache.some(r => r.name === "Star Inspector"))
-    return interaction.reply({ content: "Only Star Inspector can approve.", ephemeral: true });
+    const memberId = interaction.channel.name.split("-")[1];
+    const member = await interaction.guild.members.fetch(memberId);
+    const role = interaction.guild.roles.cache.find(r => r.name === "Star Enlisted");
 
-  const memberId = interaction.channel.name.split("-")[1];
-  const member = await interaction.guild.members.fetch(memberId);
-  const role = interaction.guild.roles.cache.find(r => r.name === "Star Enlisted");
+    if (!role)
+      return interaction.reply({ content: "Verified role missing.", ephemeral: true });
 
-  if (!role)
-    return interaction.reply({ content: "Verified role missing.", ephemeral: true });
+    await member.roles.add(role);
 
-  await member.roles.add(role);
-
-  // 🔔 Send welcome in public channel
-  const welcomeChannel = interaction.guild.channels.cache.get("1468585718472245417");
-
-  if (welcomeChannel) {
-    welcomeChannel.send(
-`🌟 **Trooper Accepted**
+    // 🔔 Send welcome in public channel
+    const welcomeChannel = interaction.guild.channels.cache.get("1468585718472245417");
+    if (welcomeChannel) {
+      welcomeChannel.send(
+        `🌟 **Trooper Accepted**
 
 Welcome ${member} to the **Republic of Star’s Legacy**.
 
 You are now officially a **Star Enlisted ⊛**.
 Serve with honor.`
-    );
+      );
+    }
+
+    await interaction.channel.send("✅ User verified. Ticket closing.");
+    setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
   }
 
-  await interaction.channel.send("✅ User verified. Ticket closing.");
-  setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
-}
+  /* DENY */
+  if (interaction.customId === "verify_deny") {
+    if (!interaction.member.roles.cache.some(r => r.name === "Star Inspector"))
+      return interaction.reply({ content: "Only Star Inspector can deny.", ephemeral: true });
 
+    const memberId = interaction.channel.name.split("-")[1];
 
-/* DENY */
-if (interaction.customId === "verify_deny") {
+    let member;
+    try {
+      member = await interaction.guild.members.fetch(memberId);
+    } catch {
+      return interaction.reply({ content: "User not found.", ephemeral: true });
+    }
 
-  if (!interaction.member.roles.cache.some(r => r.name === "Star Inspector"))
-    return interaction.reply({ content: "Only Star Inspector can deny.", ephemeral: true });
-
-  const memberId = interaction.channel.name.split("-")[1];
-
-  let member;
-  try {
-    member = await interaction.guild.members.fetch(memberId);
-  } catch {
-    return interaction.reply({ content: "User not found.", ephemeral: true });
-  }
-
-  member.send(
-`❌ **Verification Denied**
+    member.send(
+      `❌ **Verification Denied**
 
 Your application to join the **Republic of Star’s Legacy** has been rejected by a Star Inspector.
 
 You may re-apply later.`
-  ).catch(() => {});
+    ).catch(() => {});
 
-  await interaction.channel.send("❌ Application denied. Ticket closing.");
-  setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
-}
+    await interaction.channel.send("❌ Application denied. Ticket closing.");
+    setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
+  }
+}); // <-- closes interactionCreate event
 
+// Log in the bot
 client.login(process.env.TOKEN);
-
-
-
-
-
-
